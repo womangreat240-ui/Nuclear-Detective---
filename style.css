@@ -58,8 +58,6 @@ body[dir="rtl"] .settings-menu { left: auto; right: 0; }
 
 .settings-menu button { padding: 8px; border: none; background: #f0f0f0; margin: 2px; cursor: pointer; width: 100%; font-weight: bold; border-radius: 5px; color: #333; font-size: 0.85rem; }
 .bottom-bar { position: fixed; bottom: 25px; left: 0; width: 100%; display: flex; justify-content: center; z-index: 4000; }
-@keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-3px); } 50% { transform: translateX(3px); } 100% { transform: translateX(0); } }
-.shaking { animation: shake 0.2s infinite; }
 
 .critical-sections-container { 
     display: flex; 
@@ -68,51 +66,9 @@ body[dir="rtl"] .settings-menu { left: auto; right: 0; }
     gap: 10px; 
     padding: 10px; 
     margin-top: 60px; 
-    flex-direction: row; 
+    flex-direction: column; 
 }
-.critical-section { flex: 1; border: 2px dashed rgba(255,255,255,0.3); border-radius: 12px; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); position: relative; overflow: hidden; height: 100%; }
+.critical-section { flex: 1; border: 2px dashed rgba(255,255,255,0.3); border-radius: 12px; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); position: relative; overflow: hidden; height: 32%; }
 .critical-section h3 { padding: 5px; font-size: 0.75rem; color: #6fd3ff; text-align: center; }
 .ball-area { flex: 1; position: relative; width: 100%; height: 100%; }
 .critical-ball { position: absolute; width: 30px; height: 30px; background: #f1c40f; color: black; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.5rem; font-weight: bold; box-shadow: 0 0 5px gold; transition: transform 0.2s, opacity 0.3s; }
-
-#chainCanvas { 
-    position: relative; 
-    width: 100%; 
-    height: 60vh; 
-    overflow: hidden; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center;
-    margin-top: 60px;
-}
-
-.construction-container { margin-top: 60px; width: 100%; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
-.test-tube { width: 100%; max-width: 400px; height: auto; transition: transform 0.8s ease-in-out, opacity 0.5s; background: none !important; }
-.transform-active { transform: scale(1.05) translateY(-10px); filter: drop-shadow(0 0 15px rgba(255,255,255,0.5)); }
-.const-select { padding: 10px; border-radius: 10px; width: 220px; font-weight: bold; margin: 5px; border: 2px solid #6fd3ff; font-size: 1rem; }
-.controls-area { display: flex; flex-direction: column; align-items: center; }
-.evaluation-container { margin-top: 70px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-.score-circle-wrapper { position: relative; width: 130px; height: 130px; }
-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.bg-circle { fill: none; stroke: #eee; stroke-width: 8; }
-.fg-circle { fill: none; stroke: #2ecc71; stroke-width: 8; stroke-dasharray: 283; stroke-dashoffset: 283; transition: stroke-dashoffset 1s ease-out; }
-#scoreValue { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.3rem; font-weight: bold; }
-.eval-msg { font-size: 1.1rem; font-weight: bold; max-width: 90%; }
-.suggest-txt { font-size: 0.9rem; margin-top: 15px; max-width: 90%; }
-.myth-header-wrapper { width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; }
-.myth-header-text { font-size: 1rem; color: #e74c3c; font-weight: bold; text-align: center; width: 100%; }
-.myth-footer-text { font-size: 0.8rem; color: #7f8c8d; font-style: italic; margin-top: 10px; }
-@keyframes slideIn { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
-.slide-active { animation: slideIn 0.8s ease-out forwards; }
-#constQuestion { font-size: 1.4rem; margin-bottom: 5px; }
-
-.locked { opacity: 0.5; filter: grayscale(1); pointer-events: none; position: relative; }
-.locked::after { content: '🔒'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; }
-
-@media (max-width: 600px) {
-    .critical-sections-container { flex-direction: column; }
-    .critical-section { height: 32%; flex: none; width: 100%; }
-    .horizontal-controls { gap: 20px; }
-    .selection-box select { width: 160px; font-size: 0.9rem; }
-    .usage-box { min-width: 180px; font-size: 0.9rem; }
-}
