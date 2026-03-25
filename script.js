@@ -137,17 +137,13 @@ let criticalShots = 0;
 let constStep = 1; 
 let totalAttempts = 0;
 
-const tubeDay = "test-tube-day.png";
-const tubeNight = "test-tube-night.png";
-
-// --- نظام الصوت ---
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let audioCtx = null; // تأخير التهيئة لمنع الشاشة البيضاء
 
 function playSound(type) {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    osc.connect(gain); gain.connect(audioCtx.destination);
     const now = audioCtx.currentTime;
 
     if (type === 'click') {
@@ -182,7 +178,6 @@ function playSound(type) {
     }
 }
 
-// --- التهيئة الأساسية ---
 window.onload = () => {
     applyTheme(localStorage.getItem("theme") || "day");
     initSelectOptions();
@@ -215,23 +210,18 @@ window.onload = () => {
     };
 };
 
-function saveProgress() {
-    localStorage.setItem("highestLevel", highestLevel);
-}
+function saveProgress() { localStorage.setItem("highestLevel", highestLevel); }
 
 function initSelectOptions() {
-    const g1 = document.getElementById("group1");
-    const g2 = document.getElementById("group2");
+    const g1 = document.getElementById("group1"); const g2 = document.getElementById("group2");
     if(!g1 || !g2) return;
     g1.innerHTML = ""; g2.innerHTML = "";
-    for(let i=3.0; i<=5.0; i=(i+0.1)) {
-        let opt = document.createElement("option");
-        opt.value = i.toFixed(1); opt.textContent = i.toFixed(1) + "%";
+    for(let i=3.0; i<=5.0; i+=0.1) {
+        let opt = document.createElement("option"); opt.value = i.toFixed(1); opt.textContent = i.toFixed(1) + "%";
         g1.appendChild(opt);
     }
     for(let i=90; i<=100; i++) {
-        let opt = document.createElement("option");
-        opt.value = i; opt.textContent = i + "%";
+        let opt = document.createElement("option"); opt.value = i; opt.textContent = i + "%";
         g2.appendChild(opt);
     }
 }
@@ -258,23 +248,15 @@ function updateUI() {
     });
     document.body.dir = currentLang === "ar" ? "rtl" : "ltr";
     
-    const levelView = document.getElementById("levelView");
-    if(levelView && levelView.classList.contains("show")) {
-        const labelEl = document.getElementById("levelLabelTop");
-        if(labelEl) labelEl.textContent = translations[currentLang][`lvl${activeLevel + 1}`];
+    if(document.getElementById("levelView").classList.contains("show")) {
+        document.getElementById("levelLabelTop").textContent = translations[currentLang][`lvl${activeLevel + 1}`];
         startTypewriter(translations[currentLang].levelContent[activeLevel]);
     }
-
-    const evalLab = document.getElementById("evaluationLab");
-    if(evalLab && evalLab.classList.contains("show")) { showEvaluation(); }
-
-    renderMyths(); renderLevels();
-    updateConstUI();
+    renderMyths(); renderLevels(); updateConstUI();
 }
 
 function renderMyths() {
-    const list = document.getElementById("mythList");
-    if(!list) return; list.innerHTML = "";
+    const list = document.getElementById("mythList"); if(!list) return; list.innerHTML = "";
     translations[currentLang].mythNames.forEach((name, i) => {
         const div = document.createElement("div"); div.className = "box"; div.style.margin = "10px";
         div.textContent = name; div.onclick = () => i === 0 && showScreen('levelsApp');
@@ -283,11 +265,9 @@ function renderMyths() {
 }
 
 function renderLevels() {
-    const list = document.getElementById("levelList");
-    if(!list) return; list.innerHTML = "";
+    const list = document.getElementById("levelList"); if(!list) return; list.innerHTML = "";
     translations[currentLang].levelNames.forEach((name, i) => {
-        const div = document.createElement("div");
-        div.className = `box ${i + 1 > highestLevel ? 'locked' : ''}`;
+        const div = document.createElement("div"); div.className = `box ${i + 1 > highestLevel ? 'locked' : ''}`;
         div.style.margin = "10px"; div.textContent = name;
         div.onclick = () => (i + 1 <= highestLevel) && openLevel(i);
         list.appendChild(div);
@@ -295,33 +275,26 @@ function renderLevels() {
 }
 
 function openLevel(index) {
-    activeLevel = index;
-    const actionBtn = document.getElementById("actionBtn");
-    if(actionBtn) actionBtn.disabled = true;
+    activeLevel = index; document.getElementById("actionBtn").disabled = true;
     showScreen("levelView");
-    const labelEl = document.getElementById("levelLabelTop");
-    if(labelEl) labelEl.textContent = translations[currentLang][`lvl${index + 1}`];
+    document.getElementById("levelLabelTop").textContent = translations[currentLang][`lvl${index + 1}`];
     startTypewriter(translations[currentLang].levelContent[index]);
 }
 
 function startTypewriter(text) {
-    const container = document.getElementById("typewriterText");
-    const actionBtn = document.getElementById("actionBtn"); 
-    if(!container) return;
-    if(typewriterTimer) clearTimeout(typewriterTimer);
-    if(actionBtn) actionBtn.disabled = true;
-    container.innerHTML = "";
+    const container = document.getElementById("typewriterText"); const actionBtn = document.getElementById("actionBtn"); 
+    if(!container) return; if(typewriterTimer) clearTimeout(typewriterTimer);
+    actionBtn.disabled = true; container.innerHTML = "";
     let i = 0;
     function type() {
         if (i < text.length) {
             container.innerHTML += text.charAt(i) === "\n" ? "<br>" : text.charAt(i);
             i++; typewriterTimer = setTimeout(type, 25);
-        } else { if(actionBtn) actionBtn.disabled = false; }
+        } else actionBtn.disabled = false;
     }
     type();
 }
 
-// --- أحداث الأزرار ---
 document.getElementById("actionBtn").onclick = () => {
     if(activeLevel === 0) showScreen("enrichmentLab");
     else if(activeLevel === 1) { resetFissionStage(); showScreen("fissionLab"); }
@@ -338,43 +311,22 @@ document.getElementById("runBtn").onclick = () => {
 };
 
 function startEnrichmentAnimation(targetPercent) {
-    const bar = document.getElementById("enrichedBar");
-    const textVal = document.getElementById("currentEnrichedVal");
-    let current = 0.7;
-    bar.classList.add("shaking");
+    const bar = document.getElementById("enrichedBar"); const textVal = document.getElementById("currentEnrichedVal");
+    let current = 0.7; bar.classList.add("shaking");
     const interval = setInterval(() => {
         current += (targetPercent / 50);
         if(current >= targetPercent) {
-            current = targetPercent;
-            clearInterval(interval);
-            bar.classList.remove("shaking");
+            current = targetPercent; clearInterval(interval); bar.classList.remove("shaking");
             highestLevel = Math.max(highestLevel, 2); saveProgress();
             setTimeout(() => { playSound('success'); showModal("success", translations[currentLang].successMsg); }, 2000); 
         }
-        bar.style.height = current + "%";
-        textVal.textContent = current.toFixed(1) + "%";
+        bar.style.height = current + "%"; textVal.textContent = current.toFixed(1) + "%";
     }, 40);
 }
 
-// --- محاكاة الإطلاق والفيزياء ---
-function initFissionGame() {
-    const proj = document.getElementById("projectileN");
-    const barrel = document.getElementById("fissionBarrel");
-    const target = document.getElementById("targetU235");
-    setupLauncher(proj, barrel, target, triggerFission);
-}
-
-function initChainControl() {
-    const proj = document.getElementById("chainProjectile");
-    const barrel = document.getElementById("chainBarrel");
-    setupLauncher(proj, barrel, null, (t) => startRealChain(t));
-}
-
-function initCriticalControl() {
-    const proj = document.getElementById("criticalProjectile");
-    const barrel = document.getElementById("criticalBarrel");
-    setupLauncher(proj, barrel, null, (t) => handleCriticalLaunch(t));
-}
+function initFissionGame() { setupLauncher(document.getElementById("projectileN"), document.getElementById("fissionBarrel"), document.getElementById("targetU235"), triggerFission); }
+function initChainControl() { setupLauncher(document.getElementById("chainProjectile"), document.getElementById("chainBarrel"), null, (t) => startRealChain(t)); }
+function initCriticalControl() { setupLauncher(document.getElementById("criticalProjectile"), document.getElementById("criticalBarrel"), null, (t) => handleCriticalLaunch(t)); }
 
 function setupLauncher(projectile, barrel, staticTarget, onHitCallback) {
     let isActive = false;
@@ -386,24 +338,12 @@ function setupLauncher(projectile, barrel, staticTarget, onHitCallback) {
         const pivotX = barrelRect.left + barrelRect.width / 2;
         const pivotY = barrelRect.bottom;
         const angleRad = Math.atan2(pivotX - clientX, pivotY - clientY);
-        const clampedDeg = Math.max(-75, Math.min(75, angleRad * (180 / Math.PI)));
-        barrel.style.transform = `translateX(-50%) rotate(${clampedDeg}deg)`;
+        barrel.style.transform = `translateX(-50%) rotate(${Math.max(-75, Math.min(75, angleRad * (180 / Math.PI)))}deg)`;
     };
-    const launch = () => {
-        if (!isActive) return; isActive = false;
-        const target = staticTarget || findTargetForLauncher(projectile.id);
-        if (!target) return;
-        playSound('launch'); performGuidedFlight(projectile, target, () => onHitCallback(target));
-    };
+    const launch = () => { if (!isActive) return; isActive = false; const target = staticTarget || (projectile.id === "chainProjectile" ? document.getElementById("firstTarget") : findCurrentCriticalTarget()); if (!target) return; playSound('launch'); performGuidedFlight(projectile, target, () => onHitCallback(target)); };
     projectile.onmousedown = projectile.ontouchstart = (e) => { e.preventDefault(); isActive = true; };
     window.addEventListener('mousemove', handlePointer); window.addEventListener('touchmove', handlePointer);
     window.addEventListener('mouseup', launch); window.addEventListener('touchend', launch);
-}
-
-function findTargetForLauncher(projId) {
-    if(projId === "chainProjectile") return document.getElementById("firstTarget");
-    if(projId === "criticalProjectile") return findCurrentCriticalTarget();
-    return null;
 }
 
 function performGuidedFlight(proj, target, callback) {
@@ -411,9 +351,7 @@ function performGuidedFlight(proj, target, callback) {
     const startX = startRect.left + startRect.width / 2; const startY = startRect.top + startRect.height / 2;
     const endX = targetRect.left + targetRect.width / 2; const endY = targetRect.top + targetRect.height / 2;
     const duration = 700; const startTime = performance.now();
-    document.body.appendChild(proj);
-    proj.style.position = 'fixed'; proj.style.left = startX + 'px'; proj.style.top = startY + 'px';
-    proj.style.transform = 'translate(-50%, -50%)'; proj.style.pointerEvents = "none";
+    document.body.appendChild(proj); proj.style.position = 'fixed'; proj.style.left = startX + 'px'; proj.style.top = startY + 'px';
     function animate(currentTime) {
         const elapsed = currentTime - startTime; const t = Math.min(elapsed / duration, 1);
         proj.style.left = (startX + (endX - startX) * t) + 'px';
@@ -423,7 +361,6 @@ function performGuidedFlight(proj, target, callback) {
     requestAnimationFrame(animate);
 }
 
-// --- ليفل 4: الكتلة الحرجة ---
 function setupCriticalLevel() {
     criticalShots = 0; const sections = ['areaBelow', 'areaAt', 'areaAbove'];
     sections.forEach((id) => {
@@ -438,33 +375,22 @@ function setupCriticalLevel() {
     resetCriticalLauncher();
 }
 
-function resetCriticalLauncher() {
-    const proj = document.getElementById("criticalProjectile"); const barrel = document.getElementById("criticalBarrel");
-    if(proj && barrel) { barrel.appendChild(proj); proj.style.opacity = "1"; proj.style.position = "absolute"; proj.style.left = "50%"; proj.style.bottom = "80%"; proj.style.top = "auto"; proj.style.transform = "translateX(-50%)"; proj.style.pointerEvents = "auto"; }
-}
-
-function findCurrentCriticalTarget() {
-    const areas = ['areaBelow', 'areaAt', 'areaAbove'];
-    return document.getElementById(areas[criticalShots])?.querySelector(".critical-ball");
-}
+function findCurrentCriticalTarget() { return document.getElementById(['areaBelow', 'areaAt', 'areaAbove'][criticalShots])?.querySelector(".critical-ball"); }
+function resetCriticalLauncher() { const proj = document.getElementById("criticalProjectile"); const barrel = document.getElementById("criticalBarrel"); barrel.appendChild(proj); proj.style.opacity = "1"; proj.style.position = "absolute"; proj.style.left = "50%"; proj.style.bottom = "80%"; proj.style.transform = "translateX(-50%)"; proj.style.pointerEvents = "auto"; }
 
 function handleCriticalLaunch(target) {
-    const areas = ['areaBelow', 'areaAt', 'areaAbove'];
-    const currentArea = document.getElementById(areas[criticalShots]);
-    let speed = criticalShots === 0 ? 5.0 : (criticalShots === 1 ? 2.0 : 0.05);
-    let dieProb = criticalShots === 0 ? 1.0 : (criticalShots === 1 ? 0.1 : 0);
-    triggerAdvancedChain(currentArea, target, speed, dieProb, criticalShots === 0 ? 1 : 0);
+    const currentArea = document.getElementById(['areaBelow', 'areaAt', 'areaAbove'][criticalShots]);
+    triggerAdvancedChain(currentArea, target, criticalShots === 0 ? 5.0 : (criticalShots === 1 ? 2.0 : 0.05), criticalShots === 0 ? 1.0 : (criticalShots === 1 ? 0.1 : 0), criticalShots === 0 ? 1 : 0);
     criticalShots++;
     if (criticalShots === 3) { setTimeout(() => { highestLevel = Math.max(highestLevel, 5); saveProgress(); playSound('success'); showModal("noteCritical", translations[currentLang].noteBody); }, 1500); }
-    else { setTimeout(resetCriticalLauncher, 1500); }
+    else setTimeout(resetCriticalLauncher, 1500);
 }
 
 function triggerAdvancedChain(area, startNode, delayMult, dieProb, chainLimit = 0) {
     const balls = Array.from(area.querySelectorAll(".critical-ball"));
     function explode(node) {
         if(!node || node.dataset.hit) return;
-        node.dataset.hit = "true"; node.style.background = "white"; node.style.transform = "scale(1.5)";
-        playSound('hit');
+        node.dataset.hit = "true"; node.style.background = "white"; node.style.transform = "scale(1.5)"; playSound('hit');
         setTimeout(() => {
             node.style.opacity = "0"; if (chainLimit === 1) return;
             balls.filter(b => !b.dataset.hit && !b.dataset.targeted).slice(0, 3).forEach((t, i) => {
@@ -475,18 +401,14 @@ function triggerAdvancedChain(area, startNode, delayMult, dieProb, chainLimit = 
     explode(startNode);
 }
 
-// --- ليفل 2: الانشطار ---
 function triggerFission() {
-    const flash = document.getElementById("fissionFlash"); const target = document.getElementById("targetU235");
-    const canvas = document.getElementById("fissionCanvas");
-    flash.style.opacity = "1"; flash.style.transform = "scale(60)"; target.style.display = "none";
-    playSound('explosion');
+    const flash = document.getElementById("fissionFlash"); document.getElementById("targetU235").style.display = "none";
+    flash.style.opacity = "1"; flash.style.transform = "scale(60)"; playSound('explosion');
     setTimeout(() => {
-        flash.style.opacity = "0"; flash.style.transform = "scale(1)";
-        const fragments = [{ c: '#3498db', s: 60, x: -100, y: -80, txt: '' },{ c: '#2ecc71', s: 60, x: 100, y: -70, txt: '' },{ c: '#e74c3c', s: 25, x: -50, y: 120, txt: 'n' },{ c: '#e74c3c', s: 25, x: 50, y: 120, txt: 'n' },{ c: '#e74c3c', s: 25, x: 0, y: 150, txt: 'n' }];
-        fragments.forEach(f => {
-            const el = document.createElement("div"); el.className = "fission-ball"; el.style.width = el.style.height = f.s + "px"; el.style.backgroundColor = f.c; el.textContent = f.txt; el.style.left = "50%"; el.style.top = "50%"; canvas.appendChild(el);
-            setTimeout(() => { el.style.transform = `translate(${f.x}px, ${f.y}px)`; }, 50);
+        flash.style.opacity = "0";
+        [{ c: '#3498db', s: 60, x: -100, y: -80, txt: '' },{ c: '#2ecc71', s: 60, x: 100, y: -70, txt: '' },{ c: '#e74c3c', s: 25, x: -50, y: 120, txt: 'n' },{ c: '#e74c3c', s: 25, x: 50, y: 120, txt: 'n' },{ c: '#e74c3c', s: 25, x: 0, y: 150, txt: 'n' }].forEach(f => {
+            const el = document.createElement("div"); el.className = "fission-ball"; el.style.width = el.style.height = f.s + "px"; el.style.backgroundColor = f.c; el.textContent = f.txt; el.style.left = "50%"; el.style.top = "50%"; document.getElementById("fissionCanvas").appendChild(el);
+            setTimeout(() => el.style.transform = `translate(${f.x}px, ${f.y}px)`, 50);
         });
         highestLevel = Math.max(highestLevel, 3); saveProgress();
         setTimeout(() => showModal("fissionNote", translations[currentLang].fissionNote), 2500); 
@@ -494,183 +416,107 @@ function triggerFission() {
 }
 
 function resetFissionStage() {
-    const target = document.getElementById("targetU235"); const barrel = document.getElementById("fissionBarrel"); const proj = document.getElementById("projectileN");
-    if(target) target.style.display = "flex";
-    if(proj && barrel) { barrel.appendChild(proj); proj.style.opacity = "1"; proj.style.position = "absolute"; proj.style.left = "50%"; proj.style.bottom = "80%"; proj.style.transform = "translateX(-50%)"; proj.style.pointerEvents = "auto"; }
+    document.getElementById("targetU235").style.display = "flex"; const proj = document.getElementById("projectileN"); document.getElementById("fissionBarrel").appendChild(proj);
+    proj.style.opacity = "1"; proj.style.position = "absolute"; proj.style.left = "50%"; proj.style.bottom = "80%"; proj.style.transform = "translateX(-50%)"; proj.style.pointerEvents = "auto";
     document.querySelectorAll(".fission-ball").forEach(b => b.remove());
 }
 
-// --- ليفل 3: التفاعل المتسلسل ---
 function setupChainLevel() {
     const canvas = document.getElementById("chainCanvas"); canvas.innerHTML = ""; chainDone = false;
-    const proj = document.getElementById("chainProjectile"); const barrel = document.getElementById("chainBarrel");
-    if(proj && barrel) { barrel.appendChild(proj); proj.style.opacity = "1"; proj.style.position = "absolute"; proj.style.left = "50%"; proj.style.bottom = "80%"; proj.style.transform = "translateX(-50%)"; proj.style.pointerEvents = "auto"; }
-    const positions = [{ x: 50, y: 75, id: 'firstTarget' },{ x: 35, y: 55 }, { x: 50, y: 55 }, { x: 65, y: 55 },{ x: 10, y: 35 }, { x: 20, y: 35 }, { x: 30, y: 35 }, { x: 40, y: 35 }, { x: 50, y: 35 }, { x: 60, y: 35 }, { x: 70, y: 35 }, { x: 80, y: 35 }, { x: 90, y: 35 }];
-    positions.forEach((pos, i) => {
-        const nuc = document.createElement("div"); nuc.className = "chain-nucleus"; nuc.id = pos.id || `target-${i}`;
-        nuc.textContent = "U235"; nuc.style.left = pos.x + "%"; nuc.style.top = pos.y + "%"; nuc.style.transform = "translateX(-50%)"; canvas.appendChild(nuc);
+    const proj = document.getElementById("chainProjectile"); document.getElementById("chainBarrel").appendChild(proj);
+    proj.style.opacity = "1"; proj.style.position = "absolute"; proj.style.left = "50%"; proj.style.bottom = "80%"; proj.style.transform = "translateX(-50%)"; proj.style.pointerEvents = "auto";
+    [{ x: 50, y: 75, id: 'firstTarget' },{ x: 35, y: 55 }, { x: 50, y: 55 }, { x: 65, y: 55 },{ x: 10, y: 35 }, { x: 20, y: 35 }, { x: 30, y: 35 }, { x: 40, y: 35 }, { x: 50, y: 35 }, { x: 60, y: 35 }, { x: 70, y: 35 }, { x: 80, y: 35 }, { x: 90, y: 35 }].forEach((pos, i) => {
+        const nuc = document.createElement("div"); nuc.className = "chain-nucleus"; nuc.id = pos.id || `target-${i}`; nuc.textContent = "U235"; nuc.style.left = pos.x + "%"; nuc.style.top = pos.y + "%"; nuc.style.transform = "translateX(-50%)"; canvas.appendChild(nuc);
     });
 }
 
 function startRealChain(el) { hitNucleus(el); }
 function hitNucleus(el) {
     if(!el || el.dataset.hit === "true") return;
-    el.dataset.hit = "true"; el.style.transform = "translateX(-50%) scale(1.2)"; el.style.background = "white"; playSound('hit');
-    setTimeout(() => {
-        el.style.opacity = "0";
-        for(let i=0; i<3; i++) { setTimeout(() => createChainNeutron(el.offsetLeft + 22, el.offsetTop + 22), i * 50); }
-    }, 200);
+    el.dataset.hit = "true"; el.style.background = "white"; playSound('hit');
+    setTimeout(() => { el.style.opacity = "0"; for(let i=0; i<3; i++) setTimeout(() => createChainNeutron(el.offsetLeft + 22, el.offsetTop + 22), i * 50); }, 200);
 }
 
 function createChainNeutron(startX, startY) {
-    const canvas = document.getElementById("chainCanvas"); const neu = document.createElement("div");
-    neu.className = "chain-neutron"; neu.style.left = startX + "px"; neu.style.top = startY + "px"; canvas.appendChild(neu);
+    const canvas = document.getElementById("chainCanvas"); const neu = document.createElement("div"); neu.className = "chain-neutron"; neu.style.left = startX + "px"; neu.style.top = startY + "px"; canvas.appendChild(neu);
     const targets = Array.from(document.querySelectorAll(".chain-nucleus")).filter(n => n.dataset.hit !== "true" && !n.dataset.targeted);
     if(targets.length > 0) {
         const target = targets[0]; target.dataset.targeted = "true";
-        setTimeout(() => { neu.style.transition = "all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)"; neu.style.left = (target.offsetLeft + 22) + "px"; neu.style.top = (target.offsetTop + 22) + "px";
-            setTimeout(() => { neu.remove(); hitNucleus(target); checkChainEnd(); }, 600);
-        }, 20);
-    } else {
-        const angle = -Math.PI/2 + (Math.random() * Math.PI - Math.PI/2); 
-        setTimeout(() => { neu.style.transition = "all 0.8s linear"; neu.style.left = (startX + Math.cos(angle) * 500) + "px"; neu.style.top = (startY + Math.sin(angle) * 500) + "px"; neu.style.opacity = "0";
-            setTimeout(() => { neu.remove(); checkChainEnd(); }, 800);
-        }, 20);
-    }
+        setTimeout(() => { neu.style.transition = "all 0.6s linear"; neu.style.left = (target.offsetLeft + 22) + "px"; neu.style.top = (target.offsetTop + 22) + "px"; setTimeout(() => { neu.remove(); hitNucleus(target); checkChainEnd(); }, 600); }, 20);
+    } else neu.remove();
 }
 
 let chainDone = false;
-function checkChainEnd() {
-    const remains = Array.from(document.querySelectorAll(".chain-nucleus")).filter(n => n.dataset.hit !== "true");
-    const activeNeutrons = document.querySelectorAll(".chain-neutron").length;
-    if(remains.length === 0 && activeNeutrons === 0 && !chainDone) {
-        chainDone = true; setTimeout(() => { highestLevel = Math.max(highestLevel, 4); saveProgress(); playSound('success'); showModal("successChain", translations[currentLang].finalSuccessChain); }, 1000);
-    }
-}
+function checkChainEnd() { if(document.querySelectorAll(".chain-nucleus:not([style*='opacity: 0'])").length === 0 && !chainDone) { chainDone = true; setTimeout(() => { highestLevel = Math.max(highestLevel, 4); saveProgress(); playSound('success'); showModal("successChain", translations[currentLang].finalSuccessChain); }, 1000); } }
 
-// --- ليفل 5: البناء النهائي والتقييم ---
 function startConstructionLevel() { constStep = 1; totalAttempts = 0; showScreen("constructionLab"); resetConstLab(); }
-
 function initConstructionLogic() {
     document.getElementById("formBtn").onclick = () => {
-        const enVal = document.getElementById("selectEnrichmentLevel").value;
-        const reVal = document.getElementById("selectReactionType").value;
+        const enVal = document.getElementById("selectEnrichmentLevel").value; const reVal = document.getElementById("selectReactionType").value;
         if(!enVal || !reVal) { playSound('error'); showModal("alert", translations[currentLang].errorSelect); return; }
-        let isCorrect = (constStep === 1) ? (parseFloat(enVal) <= 5.0 && reVal === "controlled") : (parseFloat(enVal) >= 90 && reVal === "uncontrolled");
-        if(isCorrect) { document.getElementById("formBtn").disabled = true; handleSuccessConst(); }
+        if((constStep === 1 ? (parseFloat(enVal) <= 5.0 && reVal === "controlled") : (parseFloat(enVal) >= 90 && reVal === "uncontrolled"))) { document.getElementById("formBtn").disabled = true; handleSuccessConst(); }
         else { playSound('error'); totalAttempts++; showModal("retryConst", translations[currentLang].errorPhysical); }
     };
     document.getElementById("constNextBtn").onclick = () => { if(constStep === 1) { constStep = 2; resetConstLab(); } else showEvaluation(); };
 }
 
 function resetConstLab() {
-    const isNight = document.body.classList.contains("night"); const img = document.getElementById("constMainImg");
-    img.src = isNight ? tubeNight : tubeDay; img.style.opacity = "1"; img.classList.remove("transform-active", "slide-active");
+    document.getElementById("constMainImg").src = document.body.classList.contains("night") ? "test-tube-night.png" : "test-tube-day.png";
+    document.getElementById("constMainImg").style.opacity = "1"; document.getElementById("constMainImg").className = "test-tube";
     document.getElementById("constControls").style.display = "flex"; document.getElementById("constNextBtn").style.display = "none";
     document.getElementById("formBtn").disabled = false; updateConstUI();
 }
 
 function updateConstUI() {
-    const qText = document.getElementById("constQuestion"); const enSelect = document.getElementById("selectEnrichmentLevel"); const reSelect = document.getElementById("selectReactionType");
-    if(!qText) return; qText.textContent = constStep === 1 ? translations[currentLang].q1 : translations[currentLang].q2;
-    enSelect.innerHTML = `<option value="">${translations[currentLang].selectEnrich}</option>`;
-    const g1 = document.createElement("optgroup"); g1.label = "3-5%";
-    for(let i=3.0; i<=5.0; i+=0.1) { let opt = new Option(i.toFixed(1) + "%", i.toFixed(1)); g1.appendChild(opt); }
-    const g2 = document.createElement("optgroup"); g2.label = "≥ 90%";
-    for(let i=90; i<=100; i++) { let opt = new Option(i + "%", i); g2.appendChild(opt); }
+    const qText = document.getElementById("constQuestion"); if(!qText) return; qText.textContent = constStep === 1 ? translations[currentLang].q1 : translations[currentLang].q2;
+    const enSelect = document.getElementById("selectEnrichmentLevel"); enSelect.innerHTML = `<option value="">${translations[currentLang].selectEnrich}</option>`;
+    const g1 = document.createElement("optgroup"); g1.label = "3-5%"; for(let i=3.0; i<=5.0; i+=0.1) g1.appendChild(new Option(i.toFixed(1) + "%", i.toFixed(1)));
+    const g2 = document.createElement("optgroup"); g2.label = "≥ 90%"; for(let i=90; i<=100; i++) g2.appendChild(new Option(i + "%", i));
     enSelect.appendChild(g1); enSelect.appendChild(g2);
-    reSelect.innerHTML = `<option value="">${translations[currentLang].selectReact}</option><option value="controlled">${translations[currentLang].reactControlled}</option><option value="uncontrolled">${translations[currentLang].reactUncontrolled}</option>`;
+    document.getElementById("selectReactionType").innerHTML = `<option value="">${translations[currentLang].selectReact}</option><option value="controlled">${translations[currentLang].reactControlled}</option><option value="uncontrolled">${translations[currentLang].reactUncontrolled}</option>`;
 }
 
 function handleSuccessConst() {
     const img = document.getElementById("constMainImg"); const isNight = document.body.classList.contains("night");
     img.classList.add("transform-active"); playSound('success');
-    
-    let seq;
-    if (constStep === 1) {
-        seq = [
-            isNight ? "reactor-night.png" : "reactor-day.png",
-            isNight ? "electricity-night.png" : "electricity-day.png"
-        ];
-    } else {
-        seq = [
-            isNight ? "bomb-night.png" : "bomb-day.png",
-            isNight ? "explosion-night.png" : "explosion-day.png"
-        ];
-    }
-    
-    img.style.opacity = "0"; 
-    setTimeout(() => {
-        img.src = seq[0]; img.style.opacity = "1"; img.classList.add("slide-active");
-        setTimeout(() => { img.style.opacity = "0.7"; setTimeout(() => { img.src = seq[1]; img.style.opacity = "1"; finishConstStep(); }, 800); }, 1200);
-    }, 400);
+    let seq = constStep === 1 ? [isNight ? "reactor-night.png" : "reactor-day.png", isNight ? "electricity-night.png" : "electricity-day.png"] : [isNight ? "bomb-night.png" : "bomb-day.png", isNight ? "explosion-night.png" : "explosion-day.png"];
+    img.style.opacity = "0"; setTimeout(() => { img.src = seq[0]; img.style.opacity = "1"; img.classList.add("slide-active"); setTimeout(() => { img.style.opacity = "0.7"; setTimeout(() => { img.src = seq[1]; img.style.opacity = "1"; setTimeout(() => { document.getElementById("constControls").style.display = "none"; document.getElementById("constNextBtn").style.display = "block"; }, 1000); }, 800); }, 1200); }, 400);
 }
-
-function finishConstStep() { setTimeout(() => { document.getElementById("constControls").style.display = "none"; document.getElementById("constNextBtn").style.display = "block"; }, 1000); }
 
 function showEvaluation() {
     showScreen("evaluationLab"); let score = totalAttempts === 0 ? 100 : Math.max(0, 100 - totalAttempts * 17);
-    document.getElementById("scoreValue").textContent = score + "%";
-    document.getElementById("scoreCircle").style.strokeDashoffset = 283 - (283 * score) / 100;
-    const isWin = score >= 50;
-    document.getElementById("evalMessage").textContent = isWin ? translations[currentLang].congrats + " 🥳✨" : translations[currentLang].pity + " 🥺💔";
-    document.getElementById("suggestionText").style.display = isWin ? "block" : "none";
-    document.getElementById("suggestionBtn").style.display = isWin ? "block" : "none";
+    document.getElementById("scoreValue").textContent = score + "%"; document.getElementById("scoreCircle").style.strokeDashoffset = 283 - (283 * score) / 100;
+    const isWin = score >= 50; document.getElementById("evalMessage").textContent = isWin ? translations[currentLang].congrats + " 🥳✨" : translations[currentLang].pity + " 🥺💔";
+    document.getElementById("suggestionText").style.display = document.getElementById("suggestionBtn").style.display = isWin ? "block" : "none";
     document.getElementById("retryLevelBtn").style.display = isWin ? "none" : "block";
     document.getElementById("suggestionBtn").onclick = () => window.open(translations[currentLang].formUri, "_blank");
     document.getElementById("retryLevelBtn").onclick = startConstructionLevel;
 }
 
-// --- وظائف المودال (التنبيهات) ---
 function showModal(type, msg) {
-    const modal = document.getElementById("customAlert"); const title = document.getElementById("modalTitle");
-    const body = document.getElementById("modalBody"); const footer = document.getElementById("modalFooter");
-    body.innerHTML = msg.replace(/\n/g, "<br>"); footer.innerHTML = "";
-    
-    if(type === "retryConst") {
-        title.textContent = "⚠";
-        const btn = document.createElement("button"); btn.className = "modal-btn btn-sky"; btn.textContent = translations[currentLang].retryBtn;
-        btn.onclick = () => closeModal('customAlert'); footer.appendChild(btn);
-    } else if(type === "fissionNote" || type === "noteCritical") {
-        title.textContent = type === "fissionNote" ? "!" : translations[currentLang].noteTitle;
-        const btn = document.createElement("button"); btn.className = "modal-btn btn-sky"; btn.style.width = "100%"; btn.textContent = translations[currentLang].understood;
-        btn.onclick = () => { closeModal('customAlert'); setTimeout(() => showModal(type === "fissionNote" ? "successFission" : "successCritical", type === "fissionNote" ? translations[currentLang].fissionSuccess : translations[currentLang].finalSuccessCritical), 400); };
-        footer.appendChild(btn);
-    } else if(["success", "successFission", "successCritical", "successChain"].includes(type)) {
-        title.textContent = "✓";
-        const bRestart = document.createElement("button"); bRestart.className = "modal-btn btn-sky"; bRestart.textContent = translations[currentLang].btnRestart;
-        bRestart.onclick = () => { if(activeLevel === 1) resetFissionStage(); else if(activeLevel === 2) setupChainLevel(); else if(activeLevel === 3) setupCriticalLevel(); else resetLab(); closeModal('customAlert'); };
+    const modal = document.getElementById("customAlert"); const footer = document.getElementById("modalFooter");
+    document.getElementById("modalBody").innerHTML = msg.replace(/\n/g, "<br>"); footer.innerHTML = "";
+    const btn = document.createElement("button"); btn.className = "modal-btn btn-sky";
+    if(type === "retryConst") { btn.textContent = translations[currentLang].retryBtn; btn.onclick = () => closeModal('customAlert'); footer.appendChild(btn); }
+    else if(type === "fissionNote" || type === "noteCritical") { btn.textContent = translations[currentLang].understood; btn.style.width = "100%"; btn.onclick = () => { closeModal('customAlert'); setTimeout(() => showModal(type === "fissionNote" ? "successFission" : "successCritical", type === "fissionNote" ? translations[currentLang].fissionSuccess : translations[currentLang].finalSuccessCritical), 400); }; footer.appendChild(btn); }
+    else if(["success", "successFission", "successCritical", "successChain"].includes(type)) {
         const bNext = document.createElement("button"); bNext.className = "modal-btn btn-sky"; bNext.textContent = translations[currentLang].btnNext;
         bNext.onclick = () => { highestLevel = Math.max(highestLevel, activeLevel + 2); saveProgress(); closeModal('customAlert'); if (activeLevel < 4) openLevel(activeLevel + 1); else showScreen('levelsApp'); };
-        footer.appendChild(bRestart); footer.appendChild(bNext);
-    } else title.textContent = "⚠";
+        footer.appendChild(bNext);
+    }
     modal.style.display = "flex";
 }
 
 function closeModal(id) { document.getElementById(id).style.display = "none"; }
-function resetLab() { document.getElementById("runBtn").disabled = false; document.getElementById("enrichedBar").style.height = "0.7%"; document.getElementById("currentEnrichedVal").textContent = "0.7%"; document.getElementById("enrichmentSelect").value = ""; document.getElementById("usageDisplay").textContent = translations[currentLang].waitingUsage; }
-
-// --- التنقل والثيم ---
 document.querySelectorAll(".back-to-home").forEach(el => el.onclick = () => showScreen("app"));
 document.querySelectorAll(".back-to-myths").forEach(el => el.onclick = () => showScreen("mythsApp"));
 document.querySelectorAll(".back-to-view").forEach(el => el.onclick = () => showScreen("levelView"));
 document.querySelectorAll(".close-level").forEach(el => el.onclick = () => showScreen("levelsApp"));
-
 document.getElementById("mainThemeBtn").onclick = toggleTheme;
 document.querySelectorAll(".theme-toggle-btn").forEach(btn => btn.onclick = () => { toggleTheme(); closeAllMenus(); });
 document.querySelectorAll(".lang-toggle-btn").forEach(btn => btn.onclick = () => { currentLang = (currentLang === "ar" ? "en" : "ar"); localStorage.setItem("lang", currentLang); updateUI(); closeAllMenus(); });
-
-function toggleTheme() { 
-    applyTheme(document.body.classList.contains("day") ? "night" : "day"); 
-    if(activeLevel === 4) resetConstLab(); 
-}
-function applyTheme(theme) { 
-    document.body.className = theme; localStorage.setItem("theme", theme); 
-    const icon = document.getElementById("themeIcon"); if(icon) icon.textContent = (theme === "night") ? "🌙" : "☀️"; 
-}
-document.querySelectorAll(".box[id*='SettingsBtn']").forEach(btn => { 
-    btn.onclick = (e) => { e.stopPropagation(); const menu = document.getElementById(btn.id.replace("Btn", "")); closeAllMenus(); if(menu) menu.style.display = "flex"; }; 
-});
+function toggleTheme() { applyTheme(document.body.classList.contains("day") ? "night" : "day"); if(activeLevel === 4) resetConstLab(); }
+function applyTheme(theme) { document.body.className = theme; localStorage.setItem("theme", theme); const icon = document.getElementById("themeIcon"); if(icon) icon.textContent = (theme === "night") ? "🌙" : "☀️"; }
+document.querySelectorAll(".box[id*='SettingsBtn']").forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const menu = document.getElementById(btn.id.replace("Btn", "")); closeAllMenus(); if(menu) menu.style.display = "flex"; }; });
 function closeAllMenus() { document.querySelectorAll(".settings-menu").forEach(m => m.style.display = "none"); }
-window.onclick = closeAllMenus;
-document.getElementById("start").onclick = () => showScreen("mythsApp");
+window.onclick = closeAllMenus; document.getElementById("start").onclick = () => showScreen("mythsApp");
